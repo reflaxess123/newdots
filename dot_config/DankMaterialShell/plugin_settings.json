@@ -1,0 +1,49 @@
+{
+  "vpnStatus": {
+    "enabled": true
+  },
+  "dankActions": {
+    "enabled": true,
+    "variants": [
+      {
+        "icon": "thermostat",
+        "displayText": "",
+        "displayCommand": "nvidia-smi --query-gpu=temperature.gpu,fan.speed --format=csv,noheader,nounits | awk -F', ' '{print $1\"°C \"$2\"%\"}'",
+        "clickCommand": "",
+        "middleClickCommand": "",
+        "rightClickCommand": "",
+        "updateInterval": 5,
+        "showIcon": true,
+        "showText": true,
+        "id": "variant_1766326465372",
+        "name": "GPU"
+      },
+      {
+        "icon": "language",
+        "displayText": "",
+        "displayCommand": "~/.config/hypr/scripts/get-keyboard-layout.sh",
+        "clickCommand": "~/.config/hypr/scripts/switch-keyboard-layout.sh",
+        "middleClickCommand": "",
+        "rightClickCommand": "",
+        "updateInterval": 1,
+        "showIcon": true,
+        "showText": true,
+        "id": "variant_1766326601352",
+        "name": "Lang"
+      },
+      {
+        "icon": "terminal",
+        "displayText": "",
+        "displayCommand": "nvidia-smi --query-gpu=memory.used,memory.total --format=csv,noheader,nounits | awk -F', ' '{printf \"%.1fG/%.0fG\", $1/1024, $2/1024}'",
+        "clickCommand": "",
+        "middleClickCommand": "",
+        "rightClickCommand": "",
+        "updateInterval": 5,
+        "showIcon": true,
+        "showText": true,
+        "id": "variant_1766327305921",
+        "name": "VRAM"
+      }
+    ]
+  }
+}
