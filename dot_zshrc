@@ -141,4 +141,3 @@ bindkey -s '^h' 'tmux-help\n'
 # bun
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
-export UV_PROJECT_ENVIRONMENT=.venv-linux

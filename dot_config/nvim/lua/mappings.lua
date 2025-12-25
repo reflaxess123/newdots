@@ -31,3 +31,4 @@ map({ "n", "i", "v", "t" }, "<C-;>", "<cmd>ClaudeCode<cr>", { desc = "Toggle Cla
 
 -- Code runner
 map("n", "<leader>rr", ":RunCode<CR>", { desc = "Run code", silent = true })
+

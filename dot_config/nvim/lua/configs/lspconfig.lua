@@ -1,23 +1,48 @@
 require("nvchad.configs.lspconfig").defaults()
 -- LSP с новым API
 local capabilities = require("cmp_nvim_lsp").default_capabilities()
-local venv = vim.fn.trim(vim.fn.system "poetry env info --path")
+
+-- Функция для поиска Python интерпретатора
+local function get_python_path()
+  local cwd = vim.fn.getcwd()
+  -- Проверяем .venv в текущей директории
+  local venv_python = cwd .. "/.venv/bin/python"
+  if vim.fn.executable(venv_python) == 1 then
+    return venv_python
+  end
+  -- Проверяем venv в текущей директории
+  venv_python = cwd .. "/venv/bin/python"
+  if vim.fn.executable(venv_python) == 1 then
+    return venv_python
+  end
+  -- Проверяем poetry
+  local poetry_venv = vim.fn.trim(vim.fn.system "poetry env info --path 2>/dev/null")
+  if poetry_venv ~= "" then
+    return poetry_venv .. "/bin/python"
+  end
+  -- Fallback на системный python
+  return "python3"
+end
 
 -- Настройка серверов с новым API
 vim.lsp.config("ts_ls", {
   capabilities = capabilities,
 })
 
-vim.lsp.config("pyright", {
+vim.lsp.config("basedpyright", {
   capabilities = capabilities,
+  before_init = function(_, config)
+    config.settings.python.pythonPath = get_python_path()
+  end,
   settings = {
-    python = {
-      pythonPath = venv .. "/bin/python",
+    basedpyright = {
       analysis = {
         autoSearchPaths = true,
         typeCheckingMode = "basic",
+        useLibraryCodeForTypes = true,
       },
     },
+    python = {},
   },
 })
 
@@ -107,5 +132,20 @@ protocol.CompletionItemKind = {
   "ﬦ", -- Operator
   "", -- TypeParameter
 }
+
+-- Включаем LSP серверы
+vim.lsp.enable({
+  "ts_ls",
+  "basedpyright",
+  "ruff",
+  "jsonls",
+  "cssls",
+  "html",
+  "yamlls",
+  "dockerls",
+  "gopls",
+  "lua_ls",
+  "eslint",
+})
 
 -- read :h vim.lsp.config for changing options of lsp servers
