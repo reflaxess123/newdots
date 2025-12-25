@@ -64,6 +64,9 @@ alias pm='poetry run python main.py'
 alias clip='wl-paste'
 copy() { echo "$@" | wl-copy }
 
+# Claude
+alias cl='claude'
+
 # Navigation
 alias ..='cd ..'
 alias ...='cd ../..'
