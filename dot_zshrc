@@ -151,3 +151,10 @@ export NVM_DIR="$HOME/.nvm"
 
 # rbenv
 eval "$(rbenv init - zsh)"
+# Lazy conda - загружается только при первом вызове
+conda() {
+  unfunction conda
+  source /opt/miniconda3/etc/profile.d/conda.sh
+  conda "$@"
+}
+
