@@ -1,0 +1,14 @@
+{
+    "id": "vpnStatus",
+    "name": "VPN Status",
+    "description": "Monitor and control sing-box VPN with domain traffic visualization",
+    "version": "1.0.0",
+    "license": "MIT",
+    "author": "vasya",
+    "icon": "vpn_lock",
+    "component": "./VpnStatusWidget.qml",
+    "permissions": [
+        "settings_read",
+        "settings_write"
+    ]
+}

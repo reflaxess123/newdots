@@ -20,3 +20,11 @@ image/webp=imv.desktop
 image/bmp=imv.desktop
 image/svg+xml=imv.desktop
 application/pdf=org.pwmt.zathura.desktop
+x-scheme-handler/terminal=kitty.desktop
+gsettings=kitty.desktop
+set=kitty.desktop
+org.gnome.desktop.default-applications.terminal=kitty.desktop
+exec=kitty.desktop
+kitty=kitty.desktop
+echo=kitty.desktop
+TERMINAL=kitty=kitty.desktop
