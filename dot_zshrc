@@ -185,6 +185,16 @@ alias clgd="claude-glm --dangerously-skip-permissions"
 
 # ActivityWatch daily report
 alias aw-today='$HOME/dev/toggl-tracker/reports/daily.py'
+aw-yesterday() {
+    "$HOME/dev/toggl-tracker/reports/daily.py" --date "$(date -d yesterday +%F)" "$@"
+}
+aw-day() {
+    if [ -z "$1" ]; then
+        echo "usage: aw-day YYYY-MM-DD [flags]" >&2
+        return 1
+    fi
+    "$HOME/dev/toggl-tracker/reports/daily.py" --date "$1" "${@:2}"
+}
 
 # Override oh-my-zsh git aliases that conflict with security tools
 alias gau="$HOME/go/bin/gau"
