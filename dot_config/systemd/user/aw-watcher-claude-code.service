@@ -1,0 +1,15 @@
+[Unit]
+Description=aw-watcher-claude-code — tail ~/.claude/projects/*.jsonl into ActivityWatch
+After=aw-server.service graphical-session.target
+Requires=aw-server.service
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStartPre=/bin/sleep 3
+ExecStart=%h/dev/toggl-tracker/watchers/aw-watcher-claude-code/aw_watcher_claude_code.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
