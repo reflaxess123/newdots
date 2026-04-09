@@ -1,0 +1,15 @@
+[Unit]
+Description=awatcher — window + AFK watcher (Hyprland)
+After=aw-server.service graphical-session.target
+Requires=aw-server.service
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStartPre=/bin/sleep 2
+ExecStart=/usr/bin/aw-awatcher
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

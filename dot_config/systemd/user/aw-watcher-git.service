@@ -1,0 +1,14 @@
+[Unit]
+Description=aw-watcher-git — git activity watcher (thatmike1 fork, patched)
+After=aw-server.service
+Requires=aw-server.service
+
+[Service]
+Type=simple
+ExecStartPre=/bin/sleep 3
+ExecStart=%h/.local/bin/aw-watcher-git
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

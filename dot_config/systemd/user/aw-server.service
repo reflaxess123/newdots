@@ -1,0 +1,14 @@
+[Unit]
+Description=ActivityWatch server (Rust)
+Documentation=https://docs.activitywatch.net
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/opt/activitywatch/aw-server-rust/aw-server-rust
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target
