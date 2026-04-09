@@ -1,0 +1,11 @@
+[Unit]
+Description=ActivityWatch stack health check
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/dev/toggl-tracker/alerting/aw-health-check.sh
+
+[Install]
+WantedBy=default.target

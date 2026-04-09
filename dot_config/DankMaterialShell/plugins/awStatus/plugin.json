@@ -1,0 +1,12 @@
+{
+    "id": "awStatus",
+    "name": "AW Status",
+    "description": "ActivityWatch tracking status: service health, events today, current window",
+    "version": "1.0.0",
+    "author": "flyingkuskus",
+    "type": "widget",
+    "capabilities": ["bar_widget"],
+    "icon": "monitoring",
+    "component": "./AwStatusWidget.qml",
+    "permissions": ["process", "settings_read"]
+}
