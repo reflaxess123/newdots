@@ -21,10 +21,11 @@ PluginComponent {
     property int productiveSeconds: 0
     property int distractionSeconds: 0
     property var byProject: []
+    property var intentByProject: ({})
     property string reportDate: ""
 
-    popoutWidth: 420
-    popoutHeight: 480
+    popoutWidth: 480
+    popoutHeight: 640
 
     Component.onCompleted: {
         statusTimer.start()
@@ -78,6 +79,7 @@ PluginComponent {
                 root.productiveSeconds = d.productive_seconds || 0
                 root.distractionSeconds = d.distraction_seconds || 0
                 root.byProject = d.by_project || []
+                root.intentByProject = d.intent_by_project || ({})
             } catch (e) {
                 // leave previous values in place on parse error
             }
@@ -91,6 +93,26 @@ PluginComponent {
         var h = Math.floor(m / 60)
         var rem = m % 60
         return h + "h" + (rem < 10 ? "0" + rem : rem) + "m"
+    }
+
+    // Extract up to N most recent intent events for a project.
+    // intent_by_project is already sorted newest-first by daily.py.
+    function intentFor(projectName, limit) {
+        if (!root.intentByProject) return []
+        var evs = root.intentByProject[projectName]
+        if (!evs || evs.length === 0) return []
+        return evs.slice(0, limit)
+    }
+
+    // Convert an ISO-UTC timestamp ("2026-04-09T20:45:00Z") into "HH:MM" in
+    // local time. Pure JS so it works in the QML JS engine.
+    function fmtHourMin(isoUtc) {
+        if (!isoUtc) return ""
+        var d = new Date(isoUtc)
+        if (isNaN(d.getTime())) return ""
+        var h = d.getHours()
+        var m = d.getMinutes()
+        return (h < 10 ? "0" + h : h) + ":" + (m < 10 ? "0" + m : m)
     }
 
     horizontalBarPill: Component {
@@ -193,21 +215,58 @@ PluginComponent {
 
                 Repeater {
                     model: root.byProject
-                    Row {
+                    Column {
                         width: parent.width
-                        spacing: Theme.spacingS
-                        StyledText {
-                            text: modelData.name
-                            font.pixelSize: Theme.fontSizeSmall
-                            color: modelData.name === "Other" ? Theme.surfaceVariantText : Theme.surfaceText
-                            width: parent.width - 70
-                            elide: Text.ElideRight
+                        spacing: 2
+
+                        Row {
+                            width: parent.width
+                            spacing: Theme.spacingS
+                            StyledText {
+                                text: modelData.name
+                                font.pixelSize: Theme.fontSizeSmall
+                                font.weight: Font.Medium
+                                color: modelData.name === "Other" ? Theme.surfaceVariantText : Theme.surfaceText
+                                width: parent.width - 70
+                                elide: Text.ElideRight
+                            }
+                            StyledText {
+                                text: root.fmtDuration(modelData.seconds)
+                                font.pixelSize: Theme.fontSizeSmall
+                                font.weight: Font.Medium
+                                color: Theme.surfaceVariantText
+                            }
                         }
-                        StyledText {
-                            text: root.fmtDuration(modelData.seconds)
-                            font.pixelSize: Theme.fontSizeSmall
-                            font.weight: Font.Medium
-                            color: Theme.surfaceVariantText
+
+                        // Intent events for this project (newest first, up to 2)
+                        Repeater {
+                            model: root.intentFor(modelData.name, 2)
+                            Row {
+                                width: parent.width
+                                spacing: Theme.spacingXS
+                                leftPadding: Theme.spacingM
+
+                                StyledText {
+                                    text: root.fmtHourMin(modelData.ts)
+                                    font.pixelSize: Theme.fontSizeSmall - 2
+                                    color: Theme.surfaceVariantText
+                                    width: 36
+                                }
+                                StyledText {
+                                    text: modelData.kind === "git" ? "git" : "cc"
+                                    font.pixelSize: Theme.fontSizeSmall - 2
+                                    font.weight: Font.Bold
+                                    color: modelData.kind === "git" ? Theme.warning : Theme.primary
+                                    width: 22
+                                }
+                                StyledText {
+                                    text: modelData.text
+                                    font.pixelSize: Theme.fontSizeSmall - 2
+                                    color: Theme.surfaceVariantText
+                                    width: parent.width - 70
+                                    elide: Text.ElideRight
+                                }
+                            }
                         }
                     }
                 }
