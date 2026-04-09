@@ -1,3 +1,4 @@
+import QtCore
 import QtQuick
 import QtQuick.Controls
 import Quickshell
@@ -9,34 +10,35 @@ import qs.Modules.Plugins
 PluginComponent {
     id: root
 
+    // Service-status state (from aw-status.py)
     property bool alive: false
     property var dead: []
-    property int eventsToday: 0
     property string currentApp: ""
     property string currentTitle: ""
-    property var topApps: []
 
-    popoutWidth: 360
-    popoutHeight: 300
+    // Daily-report state (from aw-today.json)
+    property int activeSeconds: 0
+    property int productiveSeconds: 0
+    property int distractionSeconds: 0
+    property var byProject: []
+    property string reportDate: ""
 
-    Component.onCompleted: refreshTimer.start()
+    popoutWidth: 420
+    popoutHeight: 480
 
+    Component.onCompleted: {
+        statusTimer.start()
+        reportFile.reload()
+    }
+
+    // ---- Service status: poll every 10s via aw-status.py ----
     Timer {
-        id: refreshTimer
+        id: statusTimer
         interval: 10000
         repeat: true
         running: true
         triggeredOnStart: true
         onTriggered: statusProcess.running = true
-    }
-
-    function fmtDuration(seconds) {
-        if (seconds < 60) return seconds + "s"
-        var m = Math.floor(seconds / 60)
-        if (m < 60) return m + "m"
-        var h = Math.floor(m / 60)
-        var rem = m % 60
-        return h + "h" + (rem < 10 ? "0" + rem : rem) + "m"
     }
 
     Process {
@@ -50,10 +52,8 @@ PluginComponent {
                     var parsed = JSON.parse(data)
                     root.alive = parsed.alive || false
                     root.dead = parsed.dead || []
-                    root.eventsToday = parsed.events_today || 0
                     root.currentApp = parsed.current ? (parsed.current.app || "") : ""
                     root.currentTitle = parsed.current ? (parsed.current.title || "") : ""
-                    root.topApps = parsed.top || []
                 } catch (e) {
                     root.alive = false
                 }
@@ -61,19 +61,51 @@ PluginComponent {
         }
     }
 
+    // ---- Daily report: watch JSON cache file written by aw-today-cache.timer ----
+    FileView {
+        id: reportFile
+        path: StandardPaths.writableLocation(StandardPaths.RuntimeLocation) + "/aw-today.json"
+        blockLoading: false
+        watchChanges: true
+        onFileChanged: reload()
+        onLoaded: {
+            try {
+                var txt = reportFile.text()
+                if (!txt || !txt.trim()) return
+                var d = JSON.parse(txt)
+                root.reportDate = d.date || ""
+                root.activeSeconds = d.active_seconds || 0
+                root.productiveSeconds = d.productive_seconds || 0
+                root.distractionSeconds = d.distraction_seconds || 0
+                root.byProject = d.by_project || []
+            } catch (e) {
+                // leave previous values in place on parse error
+            }
+        }
+    }
+
+    function fmtDuration(seconds) {
+        if (seconds < 60) return seconds + "s"
+        var m = Math.floor(seconds / 60)
+        if (m < 60) return m + "m"
+        var h = Math.floor(m / 60)
+        var rem = m % 60
+        return h + "h" + (rem < 10 ? "0" + rem : rem) + "m"
+    }
+
     horizontalBarPill: Component {
         Row {
             spacing: Theme.spacingXS
 
             DankIcon {
-                name: root.alive ? "monitoring" : "error"
+                name: root.alive ? "schedule" : "error"
                 size: Theme.iconSize - 6
                 color: root.alive ? Theme.success : Theme.error
                 anchors.verticalCenter: parent.verticalCenter
             }
 
             StyledText {
-                text: root.eventsToday + "ev"
+                text: root.fmtDuration(root.activeSeconds)
                 font.pixelSize: Theme.fontSizeSmall
                 font.weight: Font.Medium
                 color: root.alive ? Theme.surfaceText : Theme.error
@@ -84,27 +116,65 @@ PluginComponent {
 
     popoutContent: Component {
         PopoutComponent {
-            headerText: "ActivityWatch"
-            detailsText: root.alive ? "all services alive" : ("dead: " + root.dead.join(", "))
+            headerText: "ActivityWatch — " + (root.reportDate || "today")
+            detailsText: root.alive
+                ? ("active " + root.fmtDuration(root.activeSeconds))
+                : ("services down: " + root.dead.join(", "))
             showCloseButton: true
 
             Column {
                 width: parent.width
                 spacing: Theme.spacingS
 
-                StyledText {
-                    text: root.eventsToday + " events today"
-                    font.pixelSize: Theme.fontSizeLarge
-                    font.weight: Font.Bold
-                    color: Theme.surfaceText
-                }
-
-                StyledText {
-                    text: root.currentApp ? (root.currentApp + " — " + root.currentTitle) : "no active window"
-                    font.pixelSize: Theme.fontSizeSmall
-                    color: Theme.surfaceVariantText
+                // Big active-time header
+                Row {
                     width: parent.width
-                    elide: Text.ElideRight
+                    spacing: Theme.spacingM
+
+                    Column {
+                        spacing: 2
+                        StyledText {
+                            text: "active"
+                            font.pixelSize: Theme.fontSizeSmall
+                            color: Theme.surfaceVariantText
+                        }
+                        StyledText {
+                            text: root.fmtDuration(root.activeSeconds)
+                            font.pixelSize: Theme.fontSizeLarge
+                            font.weight: Font.Bold
+                            color: Theme.surfaceText
+                        }
+                    }
+
+                    Column {
+                        spacing: 2
+                        StyledText {
+                            text: "productive"
+                            font.pixelSize: Theme.fontSizeSmall
+                            color: Theme.surfaceVariantText
+                        }
+                        StyledText {
+                            text: root.fmtDuration(root.productiveSeconds)
+                            font.pixelSize: Theme.fontSizeLarge
+                            font.weight: Font.Bold
+                            color: Theme.success
+                        }
+                    }
+
+                    Column {
+                        spacing: 2
+                        StyledText {
+                            text: "distraction"
+                            font.pixelSize: Theme.fontSizeSmall
+                            color: Theme.surfaceVariantText
+                        }
+                        StyledText {
+                            text: root.fmtDuration(root.distractionSeconds)
+                            font.pixelSize: Theme.fontSizeLarge
+                            font.weight: Font.Bold
+                            color: root.distractionSeconds > 0 ? Theme.error : Theme.surfaceVariantText
+                        }
+                    }
                 }
 
                 Rectangle {
@@ -113,27 +183,26 @@ PluginComponent {
                     color: Theme.surfaceVariant
                 }
 
+                // Projects
                 StyledText {
-                    text: "Top apps (last 30 min)"
+                    text: "projects"
                     font.pixelSize: Theme.fontSizeSmall
                     font.weight: Font.Bold
                     color: Theme.primary
                 }
 
                 Repeater {
-                    model: root.topApps
+                    model: root.byProject
                     Row {
                         width: parent.width
                         spacing: Theme.spacingS
-
                         StyledText {
-                            text: modelData.app
+                            text: modelData.name
                             font.pixelSize: Theme.fontSizeSmall
-                            color: Theme.surfaceText
-                            width: parent.width - 60
+                            color: modelData.name === "Other" ? Theme.surfaceVariantText : Theme.surfaceText
+                            width: parent.width - 70
                             elide: Text.ElideRight
                         }
-
                         StyledText {
                             text: root.fmtDuration(modelData.seconds)
                             font.pixelSize: Theme.fontSizeSmall
@@ -144,10 +213,26 @@ PluginComponent {
                 }
 
                 StyledText {
-                    visible: root.topApps.length === 0
-                    text: "no activity"
+                    visible: root.byProject.length === 0
+                    text: "no data yet"
                     font.pixelSize: Theme.fontSizeSmall
                     color: Theme.surfaceVariantText
+                }
+
+                Rectangle {
+                    width: parent.width
+                    height: 1
+                    color: Theme.surfaceVariant
+                }
+
+                StyledText {
+                    text: root.currentApp
+                        ? ("now: " + root.currentApp + " — " + root.currentTitle)
+                        : "no active window"
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.surfaceVariantText
+                    width: parent.width
+                    elide: Text.ElideRight
                 }
             }
         }

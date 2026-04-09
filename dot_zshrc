@@ -9,9 +9,14 @@ source $ZSH/oh-my-zsh.sh
 source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
 source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 # Basic exports
-export PATH="$HOME/.local/bin:$PATH"
+export PATH="$HOME/.local/bin:$HOME/go/bin:$HOME/.cargo/bin:$PATH"
 export EDITOR='nvim'
 export VISUAL='nvim'
+
+# Load env file (API keys etc)
+if [[ -f "$HOME/.local/bin/env" ]]; then
+  . "$HOME/.local/bin/env"
+fi
 
 # Tool replacements
 alias cat='bat'
@@ -64,8 +69,6 @@ alias pm='poetry run python main.py'
 alias clip='wl-paste'
 copy() { echo "$@" | wl-copy }
 
-# Claude
-alias cl='claude'
 
 # Navigation
 alias ..='cd ..'
@@ -158,3 +161,32 @@ conda() {
   conda "$@"
 }
 
+
+
+# Claude
+claude-official() { env -u ANTHROPIC_API_KEY -u ANTHROPIC_BASE_URL -u ANTHROPIC_GLM_API_KEY -u ANTHROPIC_DEFAULT_HAIKU_MODEL -u ANTHROPIC_DEFAULT_SONNET_MODEL -u ANTHROPIC_DEFAULT_OPUS_MODEL CLAUDE_CONFIG_DIR="$HOME/.claude" claude "$@"; }
+
+claude-glm() {
+  env \
+    ANTHROPIC_API_KEY="$ANTHROPIC_GLM_API_KEY" \
+    ANTHROPIC_BASE_URL="https://api.z.ai/api/anthropic" \
+    ANTHROPIC_DEFAULT_HAIKU_MODEL="glm-4.5-air" \
+    ANTHROPIC_DEFAULT_SONNET_MODEL="glm-5.1" \
+    ANTHROPIC_DEFAULT_OPUS_MODEL="glm-5" \
+    CLAUDE_CONFIG_DIR="$HOME/.claude-glm" \
+    claude "$@"
+}
+
+alias cl='claude-official --dangerously-skip-permissions'
+alias cl2='env -u ANTHROPIC_API_KEY -u ANTHROPIC_BASE_URL -u ANTHROPIC_GLM_API_KEY -u ANTHROPIC_DEFAULT_HAIKU_MODEL -u ANTHROPIC_DEFAULT_SONNET_MODEL -u ANTHROPIC_DEFAULT_OPUS_MODEL CLAUDE_CONFIG_DIR="$HOME/.claude2" claude --dangerously-skip-permissions'
+alias clg='claude-glm --dangerously-skip-permissions'
+
+alias clgd="claude-glm --dangerously-skip-permissions"
+
+# ActivityWatch daily report
+alias aw-today='$HOME/dev/toggl-tracker/reports/daily.py'
+
+# Override oh-my-zsh git aliases that conflict with security tools
+alias gau="$HOME/go/bin/gau"
+alias gf="$HOME/go/bin/gf"
+export CLAUDE_CODE_MAX_OUTPUT_TOKENS=128000

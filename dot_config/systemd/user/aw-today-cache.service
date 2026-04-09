@@ -1,0 +1,12 @@
+[Unit]
+Description=Cache aw-today JSON for DMS widget
+After=graphical-session.target aw-server.service
+Requires=aw-server.service
+PartOf=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c '%h/dev/toggl-tracker/reports/daily.py --json > ${XDG_RUNTIME_DIR}/aw-today.json'
+
+[Install]
+WantedBy=default.target
