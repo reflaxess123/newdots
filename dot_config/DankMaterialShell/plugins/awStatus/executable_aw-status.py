@@ -1,4 +1,4 @@
-#!/home/flyingkuskus/.local/share/pipx/venvs/togglcli/bin/python3
+#!/usr/bin/env python3
 """DMS aw-status plugin — single JSON line describing AW tracking state.
 
 Emits a single compact JSON object on stdout for the QML widget to parse:

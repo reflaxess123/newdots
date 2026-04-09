@@ -15,26 +15,19 @@ PluginComponent {
     property string currentApp: ""
     property string currentTitle: ""
     property var topApps: []
-    property string errorMsg: ""
 
-    popoutWidth: 380
-    popoutHeight: 340
+    popoutWidth: 360
+    popoutHeight: 300
 
-    Component.onCompleted: {
-        refresh()
-        refreshTimer.start()
-    }
+    Component.onCompleted: refreshTimer.start()
 
     Timer {
         id: refreshTimer
         interval: 10000
         repeat: true
         running: true
-        onTriggered: refresh()
-    }
-
-    function refresh() {
-        statusProcess.running = true
+        triggeredOnStart: true
+        onTriggered: statusProcess.running = true
     }
 
     function fmtDuration(seconds) {
@@ -44,11 +37,6 @@ PluginComponent {
         var h = Math.floor(m / 60)
         var rem = m % 60
         return h + "h" + (rem < 10 ? "0" + rem : rem) + "m"
-    }
-
-    function truncate(s, n) {
-        if (!s || s.length <= n) return s || ""
-        return s.substring(0, n - 1) + "…"
     }
 
     Process {
@@ -63,17 +51,10 @@ PluginComponent {
                     root.alive = parsed.alive || false
                     root.dead = parsed.dead || []
                     root.eventsToday = parsed.events_today || 0
-                    if (parsed.current) {
-                        root.currentApp = parsed.current.app || ""
-                        root.currentTitle = parsed.current.title || ""
-                    } else {
-                        root.currentApp = ""
-                        root.currentTitle = ""
-                    }
+                    root.currentApp = parsed.current ? (parsed.current.app || "") : ""
+                    root.currentTitle = parsed.current ? (parsed.current.title || "") : ""
                     root.topApps = parsed.top || []
-                    root.errorMsg = parsed.error || ""
                 } catch (e) {
-                    root.errorMsg = "parse error: " + e
                     root.alive = false
                 }
             }
@@ -101,234 +82,72 @@ PluginComponent {
         }
     }
 
-    verticalBarPill: Component {
-        Column {
-            spacing: Theme.spacingXS
-
-            DankIcon {
-                name: root.alive ? "monitoring" : "error"
-                size: Theme.iconSize - 6
-                color: root.alive ? Theme.success : Theme.error
-                anchors.horizontalCenter: parent.horizontalCenter
-            }
-
-            StyledText {
-                text: root.eventsToday
-                font.pixelSize: Theme.fontSizeSmall
-                font.weight: Font.Medium
-                color: root.alive ? Theme.surfaceText : Theme.error
-                anchors.horizontalCenter: parent.horizontalCenter
-            }
-        }
-    }
-
     popoutContent: Component {
         PopoutComponent {
-            id: popout
             headerText: "ActivityWatch"
-            detailsText: root.alive ? "all services alive" : ("DEAD: " + root.dead.join(", "))
+            detailsText: root.alive ? "all services alive" : ("dead: " + root.dead.join(", "))
             showCloseButton: true
 
             Column {
                 width: parent.width
-                spacing: Theme.spacingM
+                spacing: Theme.spacingS
+
+                StyledText {
+                    text: root.eventsToday + " events today"
+                    font.pixelSize: Theme.fontSizeLarge
+                    font.weight: Font.Bold
+                    color: Theme.surfaceText
+                }
+
+                StyledText {
+                    text: root.currentApp ? (root.currentApp + " — " + root.currentTitle) : "no active window"
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.surfaceVariantText
+                    width: parent.width
+                    elide: Text.ElideRight
+                }
 
                 Rectangle {
                     width: parent.width
-                    height: 60
-                    radius: Theme.cornerRadius
-                    color: root.alive ? Qt.rgba(Theme.success.r, Theme.success.g, Theme.success.b, 0.15) : Qt.rgba(Theme.error.r, Theme.error.g, Theme.error.b, 0.2)
+                    height: 1
+                    color: Theme.surfaceVariant
+                }
 
+                StyledText {
+                    text: "Top apps (last 30 min)"
+                    font.pixelSize: Theme.fontSizeSmall
+                    font.weight: Font.Bold
+                    color: Theme.primary
+                }
+
+                Repeater {
+                    model: root.topApps
                     Row {
-                        anchors.centerIn: parent
-                        spacing: Theme.spacingM
-
-                        DankIcon {
-                            name: root.alive ? "check_circle" : "error"
-                            size: 28
-                            color: root.alive ? Theme.success : Theme.error
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-
-                        Column {
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: 2
-
-                            StyledText {
-                                text: root.eventsToday + " events today"
-                                font.pixelSize: Theme.fontSizeLarge
-                                font.weight: Font.Bold
-                                color: Theme.surfaceText
-                            }
-
-                            StyledText {
-                                text: root.alive ? "aw-server, awatcher, watcher-git" : ("failed: " + root.dead.join(", "))
-                                font.pixelSize: Theme.fontSizeSmall
-                                color: Theme.surfaceVariantText
-                            }
-                        }
-                    }
-                }
-
-                Rectangle {
-                    width: parent.width
-                    height: currentCol.implicitHeight + Theme.spacingM * 2
-                    radius: Theme.cornerRadius
-                    color: Theme.surfaceVariant
-                    visible: root.currentApp !== ""
-
-                    Column {
-                        id: currentCol
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.leftMargin: Theme.spacingM
-                        anchors.rightMargin: Theme.spacingM
-                        spacing: 2
+                        width: parent.width
+                        spacing: Theme.spacingS
 
                         StyledText {
-                            text: "CURRENT WINDOW"
-                            font.pixelSize: Theme.fontSizeSmall - 1
-                            font.weight: Font.Bold
-                            color: Theme.primary
-                        }
-
-                        StyledText {
-                            text: root.currentApp
-                            font.pixelSize: Theme.fontSizeMedium
-                            font.weight: Font.Medium
-                            color: Theme.surfaceText
-                            width: parent.width
-                            elide: Text.ElideRight
-                        }
-
-                        StyledText {
-                            text: root.truncate(root.currentTitle, 60)
+                            text: modelData.app
                             font.pixelSize: Theme.fontSizeSmall
-                            color: Theme.surfaceVariantText
-                            width: parent.width
+                            color: Theme.surfaceText
+                            width: parent.width - 60
                             elide: Text.ElideRight
                         }
-                    }
-                }
 
-                Rectangle {
-                    width: parent.width
-                    height: 36
-                    radius: Theme.cornerRadius
-                    color: Theme.surfaceContainerHigh
-
-                    StyledText {
-                        anchors.left: parent.left
-                        anchors.leftMargin: Theme.spacingM
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "Top apps — last 30 min"
-                        font.pixelSize: Theme.fontSizeSmall
-                        font.weight: Font.Bold
-                        color: Theme.primary
-                    }
-
-                    Rectangle {
-                        width: 60
-                        height: 22
-                        radius: 11
-                        color: Theme.surfaceVariant
-                        anchors.right: parent.right
-                        anchors.rightMargin: Theme.spacingS
-                        anchors.verticalCenter: parent.verticalCenter
-
-                        Row {
-                            anchors.centerIn: parent
-                            spacing: 4
-
-                            DankIcon {
-                                name: "refresh"
-                                size: 12
-                                color: Theme.surfaceText
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-
-                            StyledText {
-                                text: "Now"
-                                font.pixelSize: 10
-                                color: Theme.surfaceText
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: root.refresh()
+                        StyledText {
+                            text: root.fmtDuration(modelData.seconds)
+                            font.pixelSize: Theme.fontSizeSmall
+                            font.weight: Font.Medium
+                            color: Theme.surfaceVariantText
                         }
                     }
                 }
 
-                Rectangle {
-                    width: parent.width
-                    height: 160
-                    radius: Theme.cornerRadius
-                    color: Theme.surfaceVariant
-
-                    ListView {
-                        id: topList
-                        anchors.fill: parent
-                        anchors.margins: Theme.spacingXS
-                        model: root.topApps
-                        clip: true
-                        spacing: 2
-
-                        delegate: Rectangle {
-                            width: topList.width
-                            height: 26
-                            radius: 4
-                            color: index % 2 === 0 ? "transparent" : Qt.rgba(255, 255, 255, 0.03)
-
-                            Row {
-                                anchors.fill: parent
-                                anchors.leftMargin: Theme.spacingS
-                                anchors.rightMargin: Theme.spacingS
-                                spacing: Theme.spacingS
-
-                                StyledText {
-                                    text: modelData.app
-                                    font.pixelSize: 12
-                                    color: Theme.surfaceText
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    width: topList.width - 80
-                                    elide: Text.ElideRight
-                                }
-
-                                Rectangle {
-                                    width: 50
-                                    height: 18
-                                    radius: 9
-                                    color: Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.2)
-                                    anchors.verticalCenter: parent.verticalCenter
-
-                                    StyledText {
-                                        anchors.centerIn: parent
-                                        text: root.fmtDuration(modelData.seconds)
-                                        font.pixelSize: 10
-                                        font.weight: Font.Medium
-                                        color: Theme.surfaceText
-                                    }
-                                }
-                            }
-                        }
-
-                        ScrollBar.vertical: ScrollBar {
-                            active: true
-                        }
-                    }
-
-                    StyledText {
-                        anchors.centerIn: parent
-                        text: "no activity in last 30 min"
-                        font.pixelSize: Theme.fontSizeSmall
-                        color: Theme.surfaceVariantText
-                        visible: root.topApps.length === 0
-                    }
+                StyledText {
+                    visible: root.topApps.length === 0
+                    text: "no activity"
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.surfaceVariantText
                 }
             }
         }

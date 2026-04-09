@@ -1,7 +1,8 @@
 [Unit]
 Description=aw-watcher-git — git activity watcher (thatmike1 fork, patched)
-After=aw-server.service
+After=aw-server.service graphical-session.target
 Requires=aw-server.service
+PartOf=graphical-session.target
 
 [Service]
 Type=simple
