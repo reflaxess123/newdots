@@ -26,7 +26,7 @@ from collections import Counter
 from datetime import datetime, time as dtime, timezone, timedelta
 
 AW_BASE = "http://localhost:5600/api/0"
-SERVICES = ["aw-server.service", "aw-awatcher.service", "aw-watcher-git.service"]
+SERVICES = ["aw-server.service", "aw-awatcher.service", "aw-watcher-git.service", "aw-watcher-claude-code.service"]
 HOST = socket.gethostname()
 BUCKETS = [
     f"aw-watcher-window_{HOST}",
@@ -35,6 +35,8 @@ BUCKETS = [
     f"aw-watcher-web-chrome_{HOST}",
 ]
 WINDOW_BUCKET = f"aw-watcher-window_{HOST}"
+AFK_BUCKET = f"aw-watcher-afk_{HOST}"
+GIT_BUCKET = f"aw-watcher-git_{HOST}"
 
 
 def service_status() -> tuple[bool, list[str]]:
@@ -106,6 +108,31 @@ def top_apps_last_30min(n: int = 5) -> list[dict]:
     return [{"app": a, "seconds": int(s)} for a, s in totals.most_common(n)]
 
 
+def current_afk() -> bool:
+    """Return True if user is currently AFK."""
+    evs = aw_get(f"/buckets/{AFK_BUCKET}/events?limit=1")
+    if not evs:
+        return False
+    return evs[0].get("data", {}).get("status") == "afk"
+
+
+def current_git() -> dict | None:
+    """Return latest git activity {repo, branch} or None."""
+    evs = aw_get(f"/buckets/{GIT_BUCKET}/events?limit=1")
+    if not evs:
+        return None
+    data = evs[0].get("data", {})
+    # Only show if the event is recent (within 10 minutes)
+    try:
+        ts = datetime.fromisoformat(evs[0]["timestamp"].replace("Z", "+00:00"))
+        age = (datetime.now(timezone.utc) - ts).total_seconds() - evs[0].get("duration", 0)
+        if age > 600:
+            return None
+    except (KeyError, ValueError):
+        return None
+    return {"repo": data.get("repo", "?"), "branch": data.get("branch", "?")}
+
+
 def main() -> int:
     try:
         alive, dead = service_status()
@@ -114,6 +141,8 @@ def main() -> int:
             "dead": dead,
             "events_today": events_today_count(),
             "current": current_window(),
+            "afk": current_afk(),
+            "git": current_git(),
             "top": top_apps_last_30min(),
         }
     except Exception as e:  # noqa: BLE001

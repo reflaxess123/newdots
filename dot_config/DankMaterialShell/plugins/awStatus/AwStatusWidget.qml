@@ -15,6 +15,12 @@ PluginComponent {
     property var dead: []
     property string currentApp: ""
     property string currentTitle: ""
+    property bool isAfk: false
+    property string gitRepo: ""
+    property string gitBranch: ""
+
+    // Timeline per hour from daily report
+    property var timeline: []
 
     // Daily-report state (from aw-today.json)
     property int activeSeconds: 0
@@ -55,6 +61,9 @@ PluginComponent {
                     root.dead = parsed.dead || []
                     root.currentApp = parsed.current ? (parsed.current.app || "") : ""
                     root.currentTitle = parsed.current ? (parsed.current.title || "") : ""
+                    root.isAfk = parsed.afk || false
+                    root.gitRepo = parsed.git ? (parsed.git.repo || "") : ""
+                    root.gitBranch = parsed.git ? (parsed.git.branch || "") : ""
                 } catch (e) {
                     root.alive = false
                 }
@@ -80,6 +89,7 @@ PluginComponent {
                 root.distractionSeconds = d.distraction_seconds || 0
                 root.byProject = d.by_project || []
                 root.intentByProject = d.intent_by_project || ({})
+                root.timeline = d.timeline || []
             } catch (e) {
                 // leave previous values in place on parse error
             }
@@ -120,9 +130,9 @@ PluginComponent {
             spacing: Theme.spacingXS
 
             DankIcon {
-                name: root.alive ? "schedule" : "error"
+                name: root.alive ? (root.isAfk ? "pause_circle" : "schedule") : "error"
                 size: Theme.iconSize - 6
-                color: root.alive ? Theme.success : Theme.error
+                color: root.alive ? (root.isAfk ? Theme.surfaceVariantText : Theme.success) : Theme.error
                 anchors.verticalCenter: parent.verticalCenter
             }
 
@@ -130,7 +140,16 @@ PluginComponent {
                 text: root.fmtDuration(root.activeSeconds)
                 font.pixelSize: Theme.fontSizeSmall
                 font.weight: Font.Medium
-                color: root.alive ? Theme.surfaceText : Theme.error
+                color: root.alive ? (root.isAfk ? Theme.surfaceVariantText : Theme.surfaceText) : Theme.error
+                anchors.verticalCenter: parent.verticalCenter
+            }
+
+            StyledText {
+                visible: root.gitRepo !== "" && !root.isAfk
+                text: root.gitRepo
+                font.pixelSize: Theme.fontSizeSmall - 2
+                font.weight: Font.Normal
+                color: Theme.surfaceVariantText
                 anchors.verticalCenter: parent.verticalCenter
             }
         }
@@ -284,14 +303,76 @@ PluginComponent {
                     color: Theme.surfaceVariant
                 }
 
+                // Timeline
                 StyledText {
-                    text: root.currentApp
-                        ? ("now: " + root.currentApp + " — " + root.currentTitle)
-                        : "no active window"
+                    visible: root.timeline.length > 0
+                    text: "timeline"
                     font.pixelSize: Theme.fontSizeSmall
-                    color: Theme.surfaceVariantText
+                    font.weight: Font.Bold
+                    color: Theme.primary
+                }
+
+                Repeater {
+                    model: root.timeline
+                    Row {
+                        width: parent.width
+                        spacing: Theme.spacingXS
+
+                        StyledText {
+                            text: (modelData.hour < 10 ? "0" : "") + modelData.hour + ":00"
+                            font.pixelSize: Theme.fontSizeSmall - 2
+                            font.family: "monospace"
+                            color: Theme.surfaceVariantText
+                            width: 38
+                        }
+
+                        StyledText {
+                            text: {
+                                var parts = []
+                                var projs = modelData.projects || []
+                                for (var i = 0; i < projs.length; i++) {
+                                    parts.push(projs[i].name + " " + root.fmtDuration(projs[i].seconds))
+                                }
+                                return parts.join(", ")
+                            }
+                            font.pixelSize: Theme.fontSizeSmall - 2
+                            color: Theme.surfaceText
+                            width: parent.width - 46
+                            elide: Text.ElideRight
+                        }
+                    }
+                }
+
+                Rectangle {
+                    visible: root.timeline.length > 0
                     width: parent.width
-                    elide: Text.ElideRight
+                    height: 1
+                    color: Theme.surfaceVariant
+                }
+
+                // Current state footer
+                Column {
+                    width: parent.width
+                    spacing: 2
+
+                    StyledText {
+                        text: root.isAfk ? "status: AFK" : (root.currentApp
+                            ? ("now: " + root.currentApp + " — " + root.currentTitle)
+                            : "no active window")
+                        font.pixelSize: Theme.fontSizeSmall
+                        color: root.isAfk ? Theme.warning : Theme.surfaceVariantText
+                        width: parent.width
+                        elide: Text.ElideRight
+                    }
+
+                    StyledText {
+                        visible: root.gitRepo !== ""
+                        text: "git: " + root.gitRepo + "@" + root.gitBranch
+                        font.pixelSize: Theme.fontSizeSmall - 2
+                        color: Theme.surfaceVariantText
+                        width: parent.width
+                        elide: Text.ElideRight
+                    }
                 }
             }
         }

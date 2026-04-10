@@ -1,12 +1,12 @@
 [Unit]
-Description=Refresh aw-today JSON cache every 10 minutes
+Description=Refresh aw-today JSON cache every 3 minutes
 After=graphical-session.target
 PartOf=graphical-session.target
 
 [Timer]
 OnActiveSec=30s
-OnUnitActiveSec=10min
-AccuracySec=30s
+OnUnitActiveSec=3min
+AccuracySec=15s
 Persistent=false
 
 [Install]

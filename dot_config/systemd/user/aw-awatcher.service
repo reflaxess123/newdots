@@ -6,9 +6,8 @@ PartOf=graphical-session.target
 
 [Service]
 Type=simple
-ExecStartPre=/bin/sleep 2
-ExecStart=/usr/bin/aw-awatcher
-Restart=on-failure
+ExecStart=/usr/bin/aw-awatcher --idle-timeout 300
+Restart=always
 RestartSec=5
 
 [Install]
