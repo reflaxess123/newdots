@@ -1,24 +1,21 @@
 [Unit]
 Description=awatcher — window + AFK watcher (Hyprland)
-# NOTE: `After=graphical-session.target` is intentionally NOT used.
-# start-hyprland (from hyprland package) does not activate the target,
-# so it stays `inactive (dead)` forever and provides no ordering barrier.
-# Instead we gate on the actual facts: wayland socket + hyprctl IPC.
+# NOT wired into default.target — starting on boot causes a race with
+# Hyprland's initial toplevel batch, after which awatcher latches onto
+# stale zwlr_foreign_toplevel_handle_v1 handles and wedges into a
+# permanent "Current window is unknown" loop. Process stays alive so
+# Restart=always never fires.
+#
+# Started instead from Hyprland exec-once (see hyprland.conf), AFTER
+# `dbus-update-activation-environment` has imported WAYLAND_DISPLAY and
+# HYPRLAND_INSTANCE_SIGNATURE into the systemd user environment. By that
+# point Hyprland has already announced its initial toplevel batch and
+# awatcher latches onto live handles.
 After=aw-server.service
 Requires=aw-server.service
 
 [Service]
 Type=simple
-# Wait up to 60s for Hyprland to be fully ready before spawning awatcher.
-# Check: WAYLAND_DISPLAY socket exists AND `hyprctl activewindow` responds.
-# The IPC check ensures Hyprland has finished initial toplevel setup —
-# launching awatcher before that causes it to latch onto stale
-# zwlr_foreign_toplevel_handle_v1 handles and get permanently stuck on
-# "Current window is unknown".
-ExecStartPre=/bin/bash -c 'for i in $(seq 1 60); do sock="$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY"; if [ -S "$sock" ] && hyprctl activewindow >/dev/null 2>&1; then exit 0; fi; sleep 1; done; echo "aw-awatcher: wayland/hyprctl not ready after 60s" >&2; exit 1'
 ExecStart=/usr/bin/aw-awatcher --idle-timeout 300
 Restart=always
 RestartSec=5
-
-[Install]
-WantedBy=default.target
